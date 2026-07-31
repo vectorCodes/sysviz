@@ -5,6 +5,7 @@ const urlShortener: Lesson = {
   title: 'Design a URL Shortener',
   summary: 'Build TinyURL end to end — write path, read path, cache and scale.',
   group: 'case-studies',
+  topic: 'URL Shortener',
   tier: 'pro',
   minutes: 12,
   concept: 'Case study',

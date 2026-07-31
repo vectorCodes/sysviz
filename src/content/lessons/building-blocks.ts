@@ -2,9 +2,10 @@ import type { Lesson } from '../types'
 
 const loadBalancer: Lesson = {
   slug: 'load-balancer',
-  title: 'Load Balancer',
+  title: 'Round-Robin Load Balancing',
   summary: 'Spread traffic across servers — and route around the ones that die.',
   group: 'building-blocks',
+  topic: 'Load Balancer',
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
@@ -56,9 +57,10 @@ const loadBalancer: Lesson = {
 
 const caching: Lesson = {
   slug: 'caching',
-  title: 'Caching (Cache-Aside)',
+  title: 'Cache-Aside (Lazy Loading)',
   summary: 'Serve hot data from memory; fall back to the database only on a miss.',
   group: 'building-blocks',
+  topic: 'Caching',
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
@@ -105,9 +107,10 @@ const caching: Lesson = {
 
 const apiGateway: Lesson = {
   slug: 'api-gateway',
-  title: 'API Gateway',
+  title: 'API Gateway Routing',
   summary: 'One front door that authenticates, throttles and routes to microservices.',
   group: 'building-blocks',
+  topic: 'API Gateway',
   tier: 'free',
   minutes: 6,
   concept: 'Concept',
@@ -155,9 +158,10 @@ const apiGateway: Lesson = {
 
 const messageQueue: Lesson = {
   slug: 'message-queue',
-  title: 'Message Queue',
+  title: 'Producer–Consumer Queue',
   summary: 'Decouple producers from consumers so spikes don\'t topple the system.',
   group: 'building-blocks',
+  topic: 'Message Queue',
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
@@ -201,9 +205,10 @@ const messageQueue: Lesson = {
 
 const rateLimiter: Lesson = {
   slug: 'rate-limiter',
-  title: 'Rate Limiter (Token Bucket)',
+  title: 'Token Bucket Algorithm',
   summary: 'Allow bursts up to a limit, then reject — refilling tokens over time.',
   group: 'building-blocks',
+  topic: 'Rate Limiter',
   tier: 'free',
   minutes: 6,
   concept: 'Concept',
@@ -250,9 +255,10 @@ const rateLimiter: Lesson = {
 
 const replication: Lesson = {
   slug: 'database-replication',
-  title: 'Database Replication',
+  title: 'Primary–Replica Replication',
   summary: 'One leader takes writes; read replicas scale out reads.',
   group: 'building-blocks',
+  topic: 'Database Replication',
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
@@ -296,11 +302,335 @@ const replication: Lesson = {
   },
 }
 
+const lbLeastConnections: Lesson = {
+  slug: 'load-balancer-least-connections',
+  title: 'Least Connections Algorithm',
+  summary: 'Route to the server with the fewest active connections — not just the next in line.',
+  group: 'building-blocks',
+  topic: 'Load Balancer',
+  tier: 'free',
+  minutes: 6,
+  concept: 'Concept',
+  tags: [
+    { label: 'Algorithm', value: 'Least connections' },
+    { label: 'Best for', value: 'Long-lived connections' },
+    { label: 'vs', value: 'Round-robin' },
+  ],
+  notes: [
+    'Round-robin ignores server load — it just takes turns. With mixed request durations, this causes imbalance.',
+    'Least Connections tracks active connections per server and always picks the least-loaded one.',
+    'Ideal for WebSockets, file uploads, or any workload where requests have variable duration.',
+  ],
+  scene: {
+    code: [
+      '# round-robin: blind rotation (ignores load)',
+      'server = pool[next % len(pool)]',
+      '',
+      '# least connections: pick the lightest server',
+      'server = min(pool, key=lambda s: s.active_conns)',
+    ],
+    initialState: { algorithm: 'round-robin', 'next request': '→ Server B' },
+    nodes: [
+      { id: 'client', kind: 'client', label: 'Clients', x: 12, y: 50 },
+      { id: 'lb', kind: 'loadBalancer', label: 'Load Balancer', x: 42, y: 50 },
+      { id: 'sa', kind: 'server', label: 'Server A', x: 80, y: 20, badge: '0 conns' },
+      { id: 'sb', kind: 'server', label: 'Server B', x: 80, y: 50, badge: '8 conns' },
+      { id: 'sc', kind: 'server', label: 'Server C', x: 80, y: 80, badge: '2 conns' },
+    ],
+    edges: [
+      { id: 'c-lb', from: 'client', to: 'lb' },
+      { id: 'lb-sa', from: 'lb', to: 'sa', curve: -0.35 },
+      { id: 'lb-sb', from: 'lb', to: 'sb' },
+      { id: 'lb-sc', from: 'lb', to: 'sc', curve: 0.35 },
+    ],
+    steps: [
+      { id: '1', caption: 'Server B has 8 slow-running connections (large file uploads). A and C are nearly free.', patches: [{ nodeId: 'sb', badge: '8 conns ⚠', highlight: true }], codeLine: 2, state: { algorithm: 'round-robin' } },
+      { id: '2', caption: 'Round-robin sends next request to Server B — it\'s just B\'s turn.', travel: 'lb-sb', token: 'request', codeLine: 2, patches: [{ nodeId: 'sb', badge: '9 conns ⚠', highlight: true }], state: { 'next request': '→ Server B (overloaded!)' } },
+      { id: '3', caption: 'Bad — B is saturated. Request queues behind 8 others. Latency spikes.', state: { algorithm: 'round-robin', 'next request': 'overloaded' } },
+      { id: '4', caption: 'Switch to Least Connections: LB tracks active conn count per server.', codeLine: 5, state: { algorithm: 'least-connections', 'next request': '→ Server A (0 conns)' } },
+      { id: '5', caption: 'New request arrives — LB picks Server A (0 connections). Fastest choice.', travel: 'lb-sa', token: 'request', codeLine: 5, patches: [{ nodeId: 'sa', badge: '1 conn', highlight: true }] },
+      { id: '6', caption: 'As B\'s uploads finish, its count drops and it naturally gets new traffic again. Self-balancing.', patches: [{ nodeId: 'sb', badge: '3 conns' }, { nodeId: 'sa', badge: '3 conns' }, { nodeId: 'sc', badge: '3 conns' }] },
+    ],
+  },
+}
+
+const cachingWriteThrough: Lesson = {
+  slug: 'caching-write-through',
+  title: 'Write-Through Cache',
+  summary: 'Write to cache and database together — always consistent, never stale.',
+  group: 'building-blocks',
+  topic: 'Caching',
+  tier: 'free',
+  minutes: 6,
+  concept: 'Concept',
+  tags: [
+    { label: 'Consistency', value: 'Strong' },
+    { label: 'Write cost', value: '2× (cache + DB)' },
+    { label: 'Read cost', value: 'Cache-only' },
+  ],
+  notes: [
+    'Write-through: every write goes to cache AND database synchronously before acknowledging the client.',
+    'Reads are always cache hits — no cold-start problem after a write.',
+    'Trade-off: writes are slower (must wait for both). Best for read-heavy data that\'s written occasionally.',
+  ],
+  scene: {
+    code: [
+      '# write-through: update both together',
+      'cache.set(key, value)',
+      'db.write(key, value)     # synchronous',
+      'return ok',
+      '',
+      '# read: always a cache hit',
+      'return cache.get(key)',
+    ],
+    initialState: { consistency: 'strong', writes: 0, reads: 0 },
+    nodes: [
+      { id: 'app', kind: 'client', label: 'App', x: 12, y: 50 },
+      { id: 'cache', kind: 'cache', label: 'Cache', x: 46, y: 26, badge: 'empty' },
+      { id: 'db', kind: 'database', label: 'Database', x: 82, y: 50 },
+    ],
+    edges: [
+      { id: 'a-cache', from: 'app', to: 'cache' },
+      { id: 'cache-db', from: 'cache', to: 'db' },
+      { id: 'cache-a', from: 'cache', to: 'app', curve: 0.5 },
+    ],
+    steps: [
+      { id: '1', caption: 'App writes a user\'s name. First, it goes into the cache.', travel: 'a-cache', token: 'write', codeLine: 2, patches: [{ nodeId: 'cache', badge: 'writing...', highlight: true }] },
+      { id: '2', caption: 'Cache immediately writes through to the database — synchronously.', travel: 'cache-db', token: 'write', codeLine: 3, patches: [{ nodeId: 'db', badge: 'writing', highlight: true }] },
+      { id: '3', caption: 'Both are updated. Cache and DB are always in sync. Write acknowledged.', patches: [{ nodeId: 'cache', badge: 'name: Hassan' }, { nodeId: 'db', badge: 'name: Hassan' }], state: { consistency: 'strong', writes: 1 } },
+      { id: '4', caption: 'App reads the same key.', travel: 'a-cache', token: 'request', codeLine: 7 },
+      { id: '5', caption: 'Cache HIT — the data is there because we wrote it through. Zero DB reads needed.', travel: 'cache-a', token: 'hit', codeLine: 7, patches: [{ nodeId: 'cache', badge: 'HIT ✓', highlight: true }], state: { reads: 1 } },
+      { id: '6', caption: 'Trade-off: each write pays 2× cost. But for data that\'s read many times after one write, this wins.', state: { writes: 1, reads: 100, consistency: 'strong' } },
+    ],
+  },
+}
+
+const cachingEvictionLru: Lesson = {
+  slug: 'caching-eviction-lru',
+  title: 'LRU Cache Eviction',
+  summary: 'When cache is full, evict the Least Recently Used entry first.',
+  group: 'building-blocks',
+  topic: 'Caching',
+  tier: 'free',
+  minutes: 7,
+  concept: 'Concept',
+  tags: [
+    { label: 'Eviction', value: 'Least Recently Used' },
+    { label: 'Complexity', value: 'O(1) get/put' },
+    { label: 'Used in', value: 'Redis · Memcached' },
+  ],
+  notes: [
+    'When the cache is full, something must be evicted to make room for new data.',
+    'LRU evicts the entry that hasn\'t been accessed for the longest time — the assumption is "if you haven\'t needed it recently, you probably won\'t".',
+    'Implemented with a hash map + doubly linked list for O(1) access and eviction.',
+  ],
+  scene: {
+    code: [
+      '# cache is full: slots A B C D (A = LRU)',
+      'cache.get("E")   # MISS',
+      'evict(LRU)       # evict A',
+      'cache.set("E")',
+      '',
+      '# every access moves key to MRU position',
+      'cache.get("B")   # B becomes MRU',
+    ],
+    initialState: { slots: 'A  B  C  D', LRU: 'A', MRU: 'D', hits: 0, misses: 0, evicted: 'none' },
+    nodes: [
+      { id: 'app', kind: 'client', label: 'App', x: 12, y: 50 },
+      { id: 'cache', kind: 'cache', label: 'Cache (full)', x: 50, y: 50, badge: 'A B C D' },
+      { id: 'db', kind: 'database', label: 'Database', x: 86, y: 50 },
+    ],
+    edges: [
+      { id: 'a-cache', from: 'app', to: 'cache' },
+      { id: 'a-db', from: 'app', to: 'db', curve: 0.4 },
+      { id: 'db-cache', from: 'db', to: 'cache', curve: -0.4 },
+      { id: 'cache-a', from: 'cache', to: 'app', curve: 0.4 },
+    ],
+    steps: [
+      { id: '1', caption: 'Cache holds A, B, C, D (4 slots full). A is the Least Recently Used.', codeLine: 1, state: { slots: 'A  B  C  D', LRU: 'A', MRU: 'D' } },
+      { id: '2', caption: 'App requests key E — not in cache. Cache miss!', travel: 'a-cache', token: 'miss', codeLine: 2, patches: [{ nodeId: 'cache', badge: 'MISS ✗', highlight: true }], state: { misses: 1 } },
+      { id: '3', caption: 'Cache is full. LRU policy evicts A — it hasn\'t been touched the longest.', codeLine: 3, patches: [{ nodeId: 'cache', badge: '_ B C D', highlight: true }], state: { evicted: 'A', slots: '_  B  C  D' } },
+      { id: '4', caption: 'E is fetched from the database.', travel: 'a-db', token: 'request', codeLine: 4 },
+      { id: '5', caption: 'E is stored in A\'s old slot. Cache now holds E, B, C, D.', travel: 'db-cache', token: 'write', codeLine: 4, patches: [{ nodeId: 'cache', badge: 'E B C D', highlight: true }], state: { slots: 'E  B  C  D', LRU: 'B', MRU: 'E' } },
+      { id: '6', caption: 'App accesses B — cache hit. B is now the MRU, moves to front of queue.', travel: 'a-cache', token: 'hit', codeLine: 7, patches: [{ nodeId: 'cache', badge: 'HIT: B', highlight: true }], state: { hits: 1, LRU: 'C', MRU: 'B' } },
+      { id: '7', caption: 'If A is requested now — cache miss. It was evicted. Must reload from DB.', travel: 'a-cache', token: 'miss', codeLine: 2, state: { misses: 2 } },
+    ],
+  },
+}
+
+const mqFanout: Lesson = {
+  slug: 'message-queue-fanout',
+  title: 'Fan-out / Pub-Sub Pattern',
+  summary: 'One event, many consumers — publish once, every subscriber gets a copy.',
+  group: 'building-blocks',
+  topic: 'Message Queue',
+  tier: 'free',
+  minutes: 7,
+  concept: 'Concept',
+  tags: [
+    { label: 'Pattern', value: 'Pub-Sub / Fan-out' },
+    { label: 'Coupling', value: 'Loose' },
+    { label: 'Delivery', value: 'At-least-once' },
+  ],
+  notes: [
+    'A publisher sends one message to a topic. Every subscribed queue gets a copy.',
+    'Services are fully decoupled — the publisher doesn\'t know how many consumers exist.',
+    'Used everywhere: photo upload triggers email, thumbnail generation, and analytics independently.',
+  ],
+  scene: {
+    code: [
+      'topic.publish("photo-upload", { user_id, photo_id })',
+      '',
+      '# each subscriber receives its own copy:',
+      'email_queue.subscribe(topic)',
+      'thumb_queue.subscribe(topic)',
+      'analytics_queue.subscribe(topic)',
+    ],
+    initialState: { 'event type': '—', consumers: 3 },
+    nodes: [
+      { id: 'pub', kind: 'client', label: 'Publisher', x: 10, y: 50 },
+      { id: 'topic', kind: 'queue', label: 'Topic', x: 34, y: 50, badge: 'photo-upload' },
+      { id: 'q1', kind: 'queue', label: 'Email Queue', x: 60, y: 20 },
+      { id: 'q2', kind: 'queue', label: 'Thumb Queue', x: 60, y: 50 },
+      { id: 'q3', kind: 'queue', label: 'Analytics Q', x: 60, y: 80 },
+      { id: 'svc1', kind: 'server', label: 'Email Svc', x: 88, y: 20 },
+      { id: 'svc2', kind: 'server', label: 'Thumb Svc', x: 88, y: 50 },
+      { id: 'svc3', kind: 'server', label: 'Analytics', x: 88, y: 80 },
+    ],
+    edges: [
+      { id: 'pub-topic', from: 'pub', to: 'topic' },
+      { id: 'topic-q1', from: 'topic', to: 'q1', curve: -0.2 },
+      { id: 'topic-q2', from: 'topic', to: 'q2' },
+      { id: 'topic-q3', from: 'topic', to: 'q3', curve: 0.2 },
+      { id: 'q1-svc1', from: 'q1', to: 'svc1' },
+      { id: 'q2-svc2', from: 'q2', to: 'svc2' },
+      { id: 'q3-svc3', from: 'q3', to: 'svc3' },
+    ],
+    steps: [
+      { id: '1', caption: 'User uploads a photo. Publisher emits one event to the topic.', travel: 'pub-topic', token: 'write', codeLine: 1, patches: [{ nodeId: 'topic', badge: '1 msg', highlight: true }], state: { 'event type': 'photo-upload' } },
+      { id: '2', caption: 'Topic fans the event out to the Email Queue.', travel: 'topic-q1', token: 'write', codeLine: 4, patches: [{ nodeId: 'q1', badge: '1 msg', highlight: true }] },
+      { id: '3', caption: 'Same event goes to the Thumbnail Queue.', travel: 'topic-q2', token: 'write', codeLine: 5, patches: [{ nodeId: 'q2', badge: '1 msg', highlight: true }] },
+      { id: '4', caption: 'And the Analytics Queue. Publisher doesn\'t know how many consumers exist.', travel: 'topic-q3', token: 'write', codeLine: 6, patches: [{ nodeId: 'q3', badge: '1 msg', highlight: true }] },
+      { id: '5', caption: 'Email Service sends a confirmation email.', travel: 'q1-svc1', token: 'request', patches: [{ nodeId: 'svc1', badge: 'email sent ✓', highlight: true }] },
+      { id: '6', caption: 'Thumbnail Service generates a resized image — completely independent.', travel: 'q2-svc2', token: 'request', patches: [{ nodeId: 'svc2', badge: 'thumb done ✓', highlight: true }] },
+      { id: '7', caption: 'Analytics records the upload. All 3 run in parallel, at their own pace.', travel: 'q3-svc3', token: 'request', patches: [{ nodeId: 'svc3', badge: 'logged ✓', highlight: true }], state: { 'event type': 'photo-upload', consumers: 3 } },
+    ],
+  },
+}
+
+const rlSlidingWindow: Lesson = {
+  slug: 'rate-limiter-sliding-window',
+  title: 'Sliding Window Counter',
+  summary: 'More precise than token bucket — counts exact requests in the last N seconds.',
+  group: 'building-blocks',
+  topic: 'Rate Limiter',
+  tier: 'free',
+  minutes: 6,
+  concept: 'Concept',
+  tags: [
+    { label: 'Algorithm', value: 'Sliding window' },
+    { label: 'Precision', value: 'Exact count' },
+    { label: 'Problem solved', value: 'Fixed window burst' },
+  ],
+  notes: [
+    'Fixed window flaw: 100 req/min limit but a burst at 0:59 and 1:01 lets through 200 in 2 seconds.',
+    'Sliding window counts the exact number of requests in the last 60 seconds, not the current minute.',
+    'Slightly more memory (stores per-second buckets) but much more accurate protection.',
+  ],
+  scene: {
+    code: [
+      '# FIXED window flaw:',
+      'window = current_minute   # resets at :00',
+      'if count[window] < 100: allow()',
+      '',
+      '# SLIDING window fix:',
+      'now = time()',
+      'count = requests_in_range(now - 60s, now)',
+      'if count < 100: allow()',
+    ],
+    initialState: { algorithm: 'fixed window', 'requests in window': 0, limit: 100 },
+    nodes: [
+      { id: 'client', kind: 'client', label: 'Client', x: 12, y: 50 },
+      { id: 'rl', kind: 'rateLimiter', label: 'Rate Limiter', x: 50, y: 50, badge: '0 / 100' },
+      { id: 'svc', kind: 'server', label: 'Service', x: 86, y: 50 },
+    ],
+    edges: [
+      { id: 'c-rl', from: 'client', to: 'rl' },
+      { id: 'rl-svc', from: 'rl', to: 'svc' },
+      { id: 'rl-c', from: 'rl', to: 'client', curve: 0.5 },
+    ],
+    steps: [
+      { id: '1', caption: 'Fixed window flaw: 50 requests arrive at 0:59 — still in minute 0. All pass.', travel: 'c-rl', token: 'request', codeLine: 3, patches: [{ nodeId: 'rl', badge: '50 / 100', highlight: true }], state: { algorithm: 'fixed window', 'requests in window': 50 } },
+      { id: '2', caption: '50 more arrive at 1:01 — new minute, counter reset to 0. All pass too!', travel: 'rl-svc', token: 'request', codeLine: 3, patches: [{ nodeId: 'rl', badge: '50 / 100 ⚠', highlight: true }], state: { 'requests in window': 100 } },
+      { id: '3', caption: '100 requests got through in just 2 seconds — twice the intended rate. Fixed windows can be gamed.', patches: [{ nodeId: 'rl', badge: '100 in 2s ⚠', highlight: true }] },
+      { id: '4', caption: 'Sliding window: count requests in the last 60 seconds, not the current minute.', codeLine: 7, state: { algorithm: 'sliding window', 'requests in window': 50 }, patches: [{ nodeId: 'rl', badge: '50 / 100', highlight: true }] },
+      { id: '5', caption: 'At 1:01, the 50 requests from 0:59 are still inside the 60s window. Count = 100. Reject!', travel: 'rl-c', token: 'miss', codeLine: 8, patches: [{ nodeId: 'rl', badge: '429 ✗ 100/100', highlight: true }], state: { 'requests in window': 100 } },
+      { id: '6', caption: 'As old requests age out of the window, new ones are allowed. Precise, smooth protection.', patches: [{ nodeId: 'rl', badge: '60 / 100', highlight: true }], state: { 'requests in window': 60 } },
+    ],
+  },
+}
+
+const replicationLag: Lesson = {
+  slug: 'database-replication-lag',
+  title: 'Replication Lag & Stale Reads',
+  summary: 'Replicas take time to catch up — reading stale data is a real risk.',
+  group: 'building-blocks',
+  topic: 'Database Replication',
+  tier: 'free',
+  minutes: 7,
+  concept: 'Concept',
+  tags: [
+    { label: 'Consistency', value: 'Eventual' },
+    { label: 'Lag', value: 'Typically < 1s' },
+    { label: 'Risk', value: 'Read-after-write' },
+  ],
+  notes: [
+    'Replication is asynchronous by default — the leader commits, then ships the change to replicas.',
+    'During the lag window (ms to seconds), reads from a replica return stale data.',
+    'Fix: "read-your-writes" consistency — route reads to the leader right after a write.',
+  ],
+  scene: {
+    code: [
+      '# write: always to leader',
+      'leader.execute("UPDATE bio = \'new bio\'")',
+      '# replication: async, ~50ms later',
+      'replica.apply(change)',
+      '',
+      '# fix: read-your-writes',
+      'if recently_wrote: read(leader)',
+      'else:              read(replica)',
+    ],
+    initialState: { 'primary bio': 'old bio', 'replica bio': 'old bio', lag: '0ms', 'reader sees': '—' },
+    nodes: [
+      { id: 'writer', kind: 'client', label: 'Writer App', x: 10, y: 28 },
+      { id: 'reader', kind: 'client', label: 'Reader App', x: 10, y: 72 },
+      { id: 'primary', kind: 'database', label: 'Primary DB', x: 50, y: 28, badge: 'v5: old bio' },
+      { id: 'replica', kind: 'database', label: 'Replica DB', x: 50, y: 72, badge: 'v4: old bio' },
+      { id: 'sync', kind: 'queue', label: 'Repl. Queue', x: 80, y: 50, badge: 'async' },
+    ],
+    edges: [
+      { id: 'w-p', from: 'writer', to: 'primary' },
+      { id: 'p-sync', from: 'primary', to: 'sync', curve: -0.2 },
+      { id: 'sync-r', from: 'sync', to: 'replica', curve: -0.2 },
+      { id: 'r-reader', from: 'replica', to: 'reader', curve: 0.3 },
+      { id: 'reader-r', from: 'reader', to: 'replica' },
+    ],
+    steps: [
+      { id: '1', caption: 'Writer updates the user\'s bio. Write goes directly to the Primary.', travel: 'w-p', token: 'write', codeLine: 2, patches: [{ nodeId: 'primary', badge: 'v6: new bio ✓', highlight: true }], state: { 'primary bio': 'new bio (v6)' } },
+      { id: '2', caption: 'Primary commits instantly and queues the change for replication.', travel: 'p-sync', token: 'write', codeLine: 3, patches: [{ nodeId: 'sync', badge: 'pending', highlight: true }], state: { lag: '~50ms pending' } },
+      { id: '3', caption: 'Reader immediately queries the Replica for the bio (e.g., page refresh).', travel: 'reader-r', token: 'request', codeLine: 7 },
+      { id: '4', caption: 'Replica hasn\'t applied the change yet. Returns OLD bio. Stale read!', travel: 'r-reader', token: 'miss', codeLine: 7, patches: [{ nodeId: 'replica', badge: 'v5: old bio ⚠', highlight: true }], state: { 'reader sees': 'old bio (stale!)', lag: '50ms' } },
+      { id: '5', caption: '50ms later, the replica applies the change. It\'s now consistent.', travel: 'sync-r', token: 'write', codeLine: 4, patches: [{ nodeId: 'replica', badge: 'v6: new bio ✓', highlight: true }], state: { 'replica bio': 'new bio (v6)', lag: '0ms' } },
+      { id: '6', caption: 'Fix: right after a write, route reads to the Primary (read-your-writes). Route to replicas otherwise.', codeLine: 7, state: { 'reader sees': 'new bio ✓' } },
+    ],
+  },
+}
+
 export const buildingBlocks: Lesson[] = [
-  loadBalancer,
-  caching,
+  loadBalancer, lbLeastConnections,
+  caching, cachingWriteThrough, cachingEvictionLru,
   apiGateway,
-  messageQueue,
-  rateLimiter,
-  replication,
+  messageQueue, mqFanout,
+  rateLimiter, rlSlidingWindow,
+  replication, replicationLag,
 ]

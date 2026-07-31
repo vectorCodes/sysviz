@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { TRACKS, type TrackCard } from '../content/tracks'
+import { useEntitlement } from '../store/useEntitlement'
 
 const MARQUEE_ITEMS = [
   'Load Balancer', 'Caching Strategies', 'Message Queue', 'Rate Limiter',
@@ -487,6 +488,32 @@ function TrackCardView({ track }: { track: TrackCard }) {
 // ── Final CTA ─────────────────────────────────────────────────────────────────
 
 function FinalCta() {
+  const isPro = useEntitlement((s) => s.hasActivePlan())
+  const accessUntil = useEntitlement((s) => s.accessUntil)
+
+  const expiry = accessUntil
+    ? new Date(accessUntil).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    : null
+
+  if (isPro) {
+    return (
+      <section className="mx-auto max-w-6xl px-5 py-16">
+        <div className="card p-10 text-center">
+          <span className="chip mx-auto border-accent-500/50 text-accent-400">Pro · Active</span>
+          <h2 className="mt-4 text-4xl">You&apos;re all set.</h2>
+          <p className="mx-auto mt-4 max-w-md text-muted">
+            Full access to every lesson, scaling pattern and case study is unlocked
+            {expiry ? ` until ${expiry}` : ''}.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link to="/tracks" className="btn-cream">Go to lessons →</Link>
+            <Link to="/account" className="btn-ghost">My account</Link>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="mx-auto max-w-6xl px-5 py-16">
       <div className="card p-10 text-center">

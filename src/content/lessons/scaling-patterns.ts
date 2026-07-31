@@ -5,6 +5,7 @@ const sharding: Lesson = {
   title: 'Sharding',
   summary: 'Split one huge dataset across many databases by a shard key.',
   group: 'scaling-patterns',
+  topic: 'Sharding',
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
@@ -48,11 +49,65 @@ const sharding: Lesson = {
   },
 }
 
+const shardingHotspot: Lesson = {
+  slug: 'sharding-hotspot',
+  title: 'Hotspot & Hot Key Problem',
+  summary: 'When one shard handles 90% of traffic — and why naive shard keys cause it.',
+  group: 'scaling-patterns',
+  topic: 'Sharding',
+  tier: 'free',
+  minutes: 7,
+  concept: 'Concept',
+  tags: [
+    { label: 'Problem', value: 'Uneven load' },
+    { label: 'Cause', value: 'Skewed shard key' },
+    { label: 'Fix', value: 'Salting / remap' },
+  ],
+  notes: [
+    'If your shard key is non-uniform (e.g. celebrity user_id), one shard gets all the traffic.',
+    'The hot shard becomes a bottleneck — adding more shards doesn\'t help if the key is the same.',
+    'Fixes: key salting (append random suffix to spread one key across N shards), or re-shard with a better key.',
+  ],
+  scene: {
+    code: [
+      '# naive: hash(user_id) % 3',
+      'user_id = "celebrity"     # ALL traffic!',
+      'shard = hash("celebrity") % 3  # → always shard 1',
+      '',
+      '# fix: salt the key',
+      'suffix = request_id % 10',
+      'shard = hash(f"celebrity:{suffix}") % 3',
+    ],
+    initialState: { 'shard 0 load': '5%', 'shard 1 load': '90%', 'shard 2 load': '5%' },
+    nodes: [
+      { id: 'app', kind: 'client', label: 'App', x: 12, y: 50 },
+      { id: 'router', kind: 'apiGateway', label: 'Shard Router', x: 42, y: 50 },
+      { id: 's0', kind: 'database', label: 'Shard 0', x: 82, y: 22, badge: '5% load' },
+      { id: 's1', kind: 'database', label: 'Shard 1', x: 82, y: 50, badge: '90% load ⚠' },
+      { id: 's2', kind: 'database', label: 'Shard 2', x: 82, y: 78, badge: '5% load' },
+    ],
+    edges: [
+      { id: 'app-r', from: 'app', to: 'router' },
+      { id: 'r-s0', from: 'router', to: 's0', curve: -0.35 },
+      { id: 'r-s1', from: 'router', to: 's1' },
+      { id: 'r-s2', from: 'router', to: 's2', curve: 0.35 },
+    ],
+    steps: [
+      { id: '1', caption: 'Celebrity user gets millions of profile views. Each request hashes the same user_id.', travel: 'app-r', token: 'request', codeLine: 2 },
+      { id: '2', caption: 'hash("celebrity") % 3 always lands on Shard 1. All traffic funnels there.', travel: 'r-s1', token: 'request', codeLine: 3, patches: [{ nodeId: 's1', badge: '90% load ⚠', highlight: true }], state: { 'shard 1 load': '90% ⚠' } },
+      { id: '3', caption: 'Shard 0 and Shard 2 are idle. Adding more shards does nothing — hot key is still the same.', patches: [{ nodeId: 's0', badge: 'idle' }, { nodeId: 's2', badge: 'idle' }] },
+      { id: '4', caption: 'Fix: append a random suffix to the key. Same data, different shard each time.', codeLine: 6 },
+      { id: '5', caption: 'celebrity:0 → shard 2, celebrity:1 → shard 0, celebrity:2 → shard 1 … load spreads!', patches: [{ nodeId: 's0', badge: '33% load' }, { nodeId: 's1', badge: '33% load' }, { nodeId: 's2', badge: '34% load' }], codeLine: 7, state: { 'shard 0 load': '33%', 'shard 1 load': '33%', 'shard 2 load': '34%' } },
+    ],
+  },
+}
+
 const consistentHashing: Lesson = {
   slug: 'consistent-hashing',
   title: 'Consistent Hashing',
   summary: 'Add or remove a node and remap only a tiny slice of keys.',
   group: 'scaling-patterns',
+  topic: 'Consistent Hashing',
   tier: 'pro',
   minutes: 8,
   concept: 'Concept',
@@ -94,11 +149,62 @@ const consistentHashing: Lesson = {
   },
 }
 
+const consistentHashingVnodes: Lesson = {
+  slug: 'consistent-hashing-vnodes',
+  title: 'Virtual Nodes (Vnodes)',
+  summary: 'Spread each physical node across many ring positions for even load distribution.',
+  group: 'scaling-patterns',
+  topic: 'Consistent Hashing',
+  tier: 'pro',
+  minutes: 7,
+  concept: 'Concept',
+  tags: [
+    { label: 'Pattern', value: 'Vnodes / token ranges' },
+    { label: 'Balance', value: 'Even per-node' },
+    { label: 'Used in', value: 'Cassandra · DynamoDB' },
+  ],
+  notes: [
+    'Even with consistent hashing, physical nodes can end up with very different arc sizes — causing imbalance.',
+    'Virtual nodes (vnodes): each physical server claims many small arc segments spread around the ring.',
+    'When a node is added or removed, its many vnodes each donate a little to neighbors — perfectly even rebalancing.',
+  ],
+  scene: {
+    code: [
+      '# 1 node → 1 arc (can be huge)',
+      'ring.add(node_A)         # owns: 0–120°',
+      '',
+      '# vnodes: each node gets many small arcs',
+      'for i in range(150):',
+      '    ring.add(f"{node_A}#{i}")  # spread evenly',
+    ],
+    initialState: { 'Node A load': '60%', 'Node B load': '25%', 'Node C load': '15%', vnodes: 'off' },
+    nodes: [
+      { id: 'a', kind: 'cache', label: 'Node A', x: 24, y: 26, badge: '60% (huge arc)' },
+      { id: 'b', kind: 'cache', label: 'Node B', x: 78, y: 26, badge: '25%' },
+      { id: 'c', kind: 'cache', label: 'Node C', x: 50, y: 74, badge: '15% (tiny arc)' },
+      { id: 'ring', kind: 'queue', label: 'Hash Ring', x: 50, y: 46, badge: '3 arcs' },
+    ],
+    edges: [
+      { id: 'a-ring', from: 'a', to: 'ring', curve: -0.2 },
+      { id: 'b-ring', from: 'b', to: 'ring', curve: 0.2 },
+      { id: 'c-ring', from: 'c', to: 'ring' },
+    ],
+    steps: [
+      { id: '1', caption: 'Without vnodes each node owns one arc. Lucky placement gives A a huge arc — 60% of keys.', codeLine: 2, patches: [{ nodeId: 'a', badge: '60% ⚠', highlight: true }] },
+      { id: '2', caption: 'C got a tiny arc by accident — only 15% of keys. Nodes are imbalanced just from hashing.', patches: [{ nodeId: 'c', badge: '15% ⚠', highlight: true }] },
+      { id: '3', caption: 'Vnodes: each physical node claims 150 small positions spread uniformly around the ring.', codeLine: 5, patches: [{ nodeId: 'ring', badge: '450 vnodes', highlight: true }], state: { vnodes: 'on' } },
+      { id: '4', caption: 'Now each node owns roughly 150/450 = 33% of the ring — regardless of hash luck.', patches: [{ nodeId: 'a', badge: '~33%' }, { nodeId: 'b', badge: '~33%' }, { nodeId: 'c', badge: '~33%' }], state: { 'Node A load': '33%', 'Node B load': '33%', 'Node C load': '33%' } },
+      { id: '5', caption: 'Adding a new node: its 150 vnodes steal a few keys from each existing node\'s many arcs — very smooth.', travel: 'a-ring', token: 'write', codeLine: 6 },
+    ],
+  },
+}
+
 const capTheorem: Lesson = {
   slug: 'cap-theorem',
   title: 'CAP Theorem',
   summary: 'During a network partition you must choose: consistency or availability.',
   group: 'scaling-patterns',
+  topic: 'CAP Theorem',
   tier: 'pro',
   minutes: 8,
   concept: 'Concept',
@@ -142,4 +248,8 @@ const capTheorem: Lesson = {
   },
 }
 
-export const scalingPatterns: Lesson[] = [sharding, consistentHashing, capTheorem]
+export const scalingPatterns: Lesson[] = [
+  sharding, shardingHotspot,
+  consistentHashing, consistentHashingVnodes,
+  capTheorem,
+]

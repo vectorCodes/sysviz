@@ -8,6 +8,9 @@ export function Sidebar({ activeSlug }: { activeSlug: string }) {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
 
+  const activeLesson = LESSONS.find((l) => l.slug === activeSlug)
+  const activeTopic = activeLesson?.topic ?? ''
+
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return null
@@ -55,30 +58,53 @@ export function Sidebar({ activeSlug }: { activeSlug: string }) {
         {matches ? (
           <div className="space-y-1">
             {matches.length === 0 && (
-              <p className="px-2 py-3 text-sm text-faint">No lessons match “{query}”.</p>
+              <p className="px-2 py-3 text-sm text-faint">No lessons match &quot;{query}&quot;.</p>
             )}
             {matches.map((l) => (
-              <LessonRow key={l.slug} lesson={l} active={l.slug === activeSlug} onNavigate={navigate} />
+              <LessonRow key={l.slug} lesson={l} active={l.slug === activeSlug} indent={false} onNavigate={navigate} />
             ))}
           </div>
         ) : (
           GROUP_ORDER.map((group) => {
             const lessons = lessonsByGroup(group)
             if (lessons.length === 0) return null
+
+            // Group lessons by topic within this section
+            const topicMap = new Map<string, Lesson[]>()
+            for (const l of lessons) {
+              const t = l.topic
+              if (!topicMap.has(t)) topicMap.set(t, [])
+              topicMap.get(t)!.push(l)
+            }
+
             return (
               <div key={group} className="mt-4 first:mt-1">
                 <p className="px-2 pb-1 font-display text-sm font-bold text-text">
                   {GROUP_META[group].title}
                 </p>
-                <div className="space-y-1">
-                  {lessons.map((l) => (
-                    <LessonRow
-                      key={l.slug}
-                      lesson={l}
-                      active={l.slug === activeSlug}
-                      onNavigate={navigate}
-                    />
-                  ))}
+                <div className="space-y-0.5">
+                  {Array.from(topicMap.entries()).map(([topic, topicLessons]) =>
+                    topicLessons.length === 1 ? (
+                      // Single lesson under topic — no accordion needed
+                      <LessonRow
+                        key={topicLessons[0].slug}
+                        lesson={topicLessons[0]}
+                        active={topicLessons[0].slug === activeSlug}
+                        indent={false}
+                        onNavigate={navigate}
+                      />
+                    ) : (
+                      // Multiple lessons — collapsible topic group
+                      <TopicGroup
+                        key={topic}
+                        topic={topic}
+                        lessons={topicLessons}
+                        activeSlug={activeSlug}
+                        defaultOpen={topic === activeTopic}
+                        onNavigate={navigate}
+                      />
+                    ),
+                  )}
                 </div>
               </div>
             )
@@ -89,13 +115,73 @@ export function Sidebar({ activeSlug }: { activeSlug: string }) {
   )
 }
 
+function TopicGroup({
+  topic,
+  lessons,
+  activeSlug,
+  defaultOpen,
+  onNavigate,
+}: {
+  topic: string
+  lessons: Lesson[]
+  activeSlug: string
+  defaultOpen: boolean
+  onNavigate: (to: string) => void
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  const hasActive = lessons.some((l) => l.slug === activeSlug)
+  const isPro = useEntitlement((s) => s.plan === 'pro')
+  const allLocked = lessons.every((l) => l.tier === 'pro') && !isPro
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className={`group flex w-full items-center gap-1.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface ${
+          hasActive && !open ? 'bg-surface' : ''
+        }`}
+      >
+        {/* chevron */}
+        <svg
+          width="12" height="12" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5"
+          className={`shrink-0 text-faint transition-transform ${open ? 'rotate-90' : ''}`}
+        >
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+        <span className={`flex-1 truncate text-sm font-medium ${hasActive ? 'text-text' : 'text-muted group-hover:text-text'}`}>
+          {topic}
+        </span>
+        {allLocked && <LockIcon />}
+        <span className="font-mono text-[10px] text-faint">{lessons.length}</span>
+      </button>
+
+      {open && (
+        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-border pl-2">
+          {lessons.map((l) => (
+            <LessonRow
+              key={l.slug}
+              lesson={l}
+              active={l.slug === activeSlug}
+              indent
+              onNavigate={onNavigate}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function LessonRow({
   lesson,
   active,
+  indent,
   onNavigate,
 }: {
   lesson: Lesson
   active: boolean
+  indent: boolean
   onNavigate: (to: string) => void
 }) {
   const isPro = useEntitlement((s) => s.plan === 'pro')
@@ -108,6 +194,9 @@ function LessonRow({
         active ? 'bg-surface-2' : 'hover:bg-surface'
       }`}
     >
+      {indent && (
+        <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${active ? 'bg-accent-500' : 'bg-border-strong group-hover:bg-muted'}`} />
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className={`truncate text-sm font-medium ${active ? 'text-text' : 'text-muted group-hover:text-text'}`}>

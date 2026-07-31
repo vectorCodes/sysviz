@@ -18,6 +18,8 @@ export type Lesson = {
   tier: Tier
   /** Rough watch time in minutes, shown in the catalog. */
   minutes: number
+  /** Groups this lesson under a collapsible topic in the sidebar. */
+  topic: string
   /** Short tag shown by the title, e.g. "Concept" or "Case study". */
   concept?: string
   /** System design metadata chips shown in the top bar. */
