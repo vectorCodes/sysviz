@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SysViz — See system design, don't just read it</title>
+    <script>
+      // Apply persisted theme before first paint to avoid a flash.
+      try {
+        var q = new URLSearchParams(location.search).get('theme');
+        var saved = JSON.parse(localStorage.getItem('sysviz-theme') || '{}');
+        var theme = q === 'light' || q === 'dark' ? q : saved?.state?.theme;
+        document.documentElement.setAttribute(
+          'data-theme',
+          theme === 'light' ? 'light' : 'dark',
+        );
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

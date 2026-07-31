@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+/* Enable class/attribute based dark mode driven by <html data-theme>. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* ── Design tokens ────────────────────────────────────────────────────────
+   Semantic tokens (bg / surface / text …) are the API used across the app.
+   Their values flip per theme below, so a single toggle re-skins everything.
+   Fonts, accent and signal colors are theme-independent.                    */
+@theme {
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Semantic — default values are the DARK theme. */
+  --color-bg: #0f0d0b;
+  --color-surface: #1c1815;
+  --color-surface-2: #232019;
+  --color-border: #302a22;
+  --color-border-strong: #443c30;
+  --color-text: #efe9dd;
+  --color-muted: #c9c0ae;
+  --color-faint: #9a917f;
+  --color-primary: #efe9dd; /* CTA fill */
+  --color-primary-ink: #0f0d0b; /* text on CTA */
+
+  /* Accent (orange) — shared across themes. */
+  --color-accent-400: #f2884c;
+  --color-accent-500: #e8642c;
+  --color-accent-600: #cf4f1c;
+
+  /* Animation state signals. */
+  --color-signal-hit: #4ea36b;
+  --color-signal-miss: #d9564f;
+  --color-signal-queue: #d9a441;
+
+  --shadow-card: 0 2px 0 0 rgba(0, 0, 0, 0.4), 0 20px 40px -24px rgba(0, 0, 0, 0.8);
+}
+
+/* LIGHT theme overrides — warm paper, not stark white. */
+[data-theme='light'] {
+  --color-bg: #f4eee2;
+  --color-surface: #fffdf8;
+  --color-surface-2: #efe8da;
+  --color-border: #e0d7c5;
+  --color-border-strong: #cfc4ac;
+  --color-text: #241f18;
+  --color-muted: #5c5346;
+  --color-faint: #877c68;
+  --color-primary: #241f18;
+  --color-primary-ink: #fffdf8;
+  --shadow-card: 0 1px 0 0 rgba(0, 0, 0, 0.05), 0 18px 36px -28px rgba(0, 0, 0, 0.35);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+
+  ::selection {
+    background: var(--color-accent-500);
+    color: #0f0d0b;
+  }
+}
+
+/* ── Reusable component classes ───────────────────────────────────────── */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-border bg-surface shadow-card;
+  }
+
+  .btn-cream {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3
+      font-display font-bold text-primary-ink shadow-[0_3px_0_0_rgba(0,0,0,0.25)]
+      transition-transform hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-border-strong
+      px-5 py-3 font-display font-semibold text-text transition-colors hover:bg-surface-2;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full border border-border-strong px-3 py-1
+      font-mono text-xs uppercase tracking-widest text-faint;
+  }
+}
