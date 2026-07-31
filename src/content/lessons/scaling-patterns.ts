@@ -8,9 +8,13 @@ const sharding: Lesson = {
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
-  complexity: { time: 'O(1)', space: 'O(n)' },
+  tags: [
+    { label: 'Scalability', value: 'Horizontal' },
+    { label: 'Trade-off', value: 'Cross-shard joins' },
+    { label: 'Key choice', value: 'Critical' },
+  ],
   notes: [
-    'A single DB eventually can’t hold or serve all the data.',
+    'A single DB eventually can\'t hold or serve all the data.',
     'A shard key (e.g. user_id) decides which shard a row lives on.',
     'Each query touches only one shard, so capacity scales with shard count.',
   ],
@@ -52,7 +56,11 @@ const consistentHashing: Lesson = {
   tier: 'pro',
   minutes: 8,
   concept: 'Concept',
-  complexity: { time: 'O(log n)', space: 'O(n)' },
+  tags: [
+    { label: 'Rebalancing', value: 'Minimal (~1/N keys)' },
+    { label: 'Pattern', value: 'Hash ring' },
+    { label: 'Used in', value: 'Cassandra · DynamoDB' },
+  ],
   notes: [
     'Plain hash % N remaps almost every key when N changes — catastrophic for caches.',
     'Consistent hashing places nodes on a ring; a key belongs to the next node clockwise.',
@@ -94,7 +102,11 @@ const capTheorem: Lesson = {
   tier: 'pro',
   minutes: 8,
   concept: 'Concept',
-  complexity: { time: '—', space: '—' },
+  tags: [
+    { label: 'Trade-off', value: 'Consistency vs Availability' },
+    { label: 'Guarantee', value: 'Pick 2 of 3' },
+    { label: 'Partition', value: 'Always present' },
+  ],
   notes: [
     'Consistency: every read sees the latest write. Availability: every request gets a response.',
     'When the network partitions, you cannot have both — you must pick one.',

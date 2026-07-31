@@ -8,7 +8,11 @@ const loadBalancer: Lesson = {
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
-  complexity: { time: 'O(1)', space: 'O(n)' },
+  tags: [
+    { label: 'Availability', value: 'High' },
+    { label: 'Pattern', value: 'Round-robin' },
+    { label: 'Scalability', value: 'Horizontal' },
+  ],
   notes: [
     'Round-robin sends each request to the next server in turn.',
     'Health checks continuously ping servers; unhealthy ones are pulled from the pool.',
@@ -44,8 +48,8 @@ const loadBalancer: Lesson = {
       { id: '2', caption: 'Round-robin forwards it to Server A.', travel: 'lb-s1', token: 'request', codeLine: 4, patches: [{ nodeId: 's1', badge: '1 req', highlight: true }] },
       { id: '3', caption: 'The next request goes to Server B, then C — evenly spread.', travel: 'lb-s2', token: 'request', codeLine: 4, patches: [{ nodeId: 's2', badge: '1 req', highlight: true }], state: { requests: 2 } },
       { id: '4', caption: 'A health check to Server B fails — it has crashed.', travel: 'lb-s2', token: 'miss', codeLine: 7, patches: [{ nodeId: 's2', badge: '✗ down', highlight: true }], state: { healthy: 2 } },
-      { id: '5', caption: 'The balancer removes B from the pool. It’s no longer a target.', codeLine: 8, patches: [{ nodeId: 's2', badge: 'removed' }] },
-      { id: '6', caption: 'The request that would’ve gone to B is rerouted to C — no error reaches the client.', travel: 'lb-s3', token: 'request', codeLine: 6, patches: [{ nodeId: 's3', badge: '2 req', highlight: true }], state: { requests: 3 } },
+      { id: '5', caption: 'The balancer removes B from the pool. It\'s no longer a target.', codeLine: 8, patches: [{ nodeId: 's2', badge: 'removed' }] },
+      { id: '6', caption: 'The request that would\'ve gone to B is rerouted to C — no error reaches the client.', travel: 'lb-s3', token: 'request', codeLine: 6, patches: [{ nodeId: 's3', badge: '2 req', highlight: true }], state: { requests: 3 } },
     ],
   },
 }
@@ -58,11 +62,15 @@ const caching: Lesson = {
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
-  complexity: { time: 'O(1)', space: 'O(k)' },
+  tags: [
+    { label: 'Latency', value: 'Sub-ms reads' },
+    { label: 'Consistency', value: 'Eventual (TTL)' },
+    { label: 'Trade-off', value: 'Freshness vs Speed' },
+  ],
   notes: [
     'Cache-aside: the app checks the cache first. On a miss it reads the DB, then stores the result.',
     'The next read for the same key is a hit — served from memory in microseconds.',
-    'A TTL expires stale entries so the cache doesn’t serve outdated data forever.',
+    'A TTL expires stale entries so the cache doesn\'t serve outdated data forever.',
   ],
   scene: {
     code: [
@@ -86,10 +94,10 @@ const caching: Lesson = {
     ],
     steps: [
       { id: '1', caption: 'The app looks up the key in the cache first.', travel: 'c-cache', token: 'request', codeLine: 1 },
-      { id: '2', caption: 'Cache miss — the key isn’t there yet.', travel: 'cache-c', token: 'miss', codeLine: 2, patches: [{ nodeId: 'cache', badge: 'MISS', highlight: true }], state: { misses: 1 } },
+      { id: '2', caption: 'Cache miss — the key isn\'t there yet.', travel: 'cache-c', token: 'miss', codeLine: 2, patches: [{ nodeId: 'cache', badge: 'MISS', highlight: true }], state: { misses: 1 } },
       { id: '3', caption: 'So the app falls back to the database.', travel: 'c-db', token: 'request', codeLine: 3 },
       { id: '4', caption: 'The DB returns the value, and the app populates the cache with a TTL.', travel: 'db-cache', token: 'write', codeLine: 4, patches: [{ nodeId: 'cache', badge: '1 key', highlight: true }], state: { 'cache size': 1 } },
-      { id: '5', caption: 'The same request again — this time it’s a cache HIT.', travel: 'c-cache', token: 'hit', codeLine: 1, patches: [{ nodeId: 'cache', badge: 'HIT', highlight: true }], state: { hits: 1 } },
+      { id: '5', caption: 'The same request again — this time it\'s a cache HIT.', travel: 'c-cache', token: 'hit', codeLine: 1, patches: [{ nodeId: 'cache', badge: 'HIT', highlight: true }], state: { hits: 1 } },
       { id: '6', caption: 'Served from memory — no database touch. Hit rate climbs as traffic repeats.', travel: 'cache-c', token: 'hit', codeLine: 5, state: { 'hit rate': '50%' } },
     ],
   },
@@ -103,7 +111,11 @@ const apiGateway: Lesson = {
   tier: 'free',
   minutes: 6,
   concept: 'Concept',
-  complexity: { time: 'O(1)', space: 'O(1)' },
+  tags: [
+    { label: 'Pattern', value: 'Façade / Proxy' },
+    { label: 'Concerns', value: 'Auth · Rate limit · Routing' },
+    { label: 'Coupling', value: 'Loose' },
+  ],
   notes: [
     'Clients talk to one endpoint instead of many services.',
     'The gateway handles cross-cutting concerns: auth, rate limiting, logging.',
@@ -134,7 +146,7 @@ const apiGateway: Lesson = {
     steps: [
       { id: '1', caption: 'The client sends every request to the single gateway endpoint.', travel: 'c-gw', token: 'request', codeLine: 1 },
       { id: '2', caption: 'The gateway validates the auth token first.', codeLine: 2, patches: [{ nodeId: 'gw', badge: 'auth ✓', highlight: true }], state: { authenticated: 'yes' } },
-      { id: '3', caption: 'Then checks the caller hasn’t exceeded their rate limit.', codeLine: 3, patches: [{ nodeId: 'gw', badge: 'rate ok', highlight: true }] },
+      { id: '3', caption: 'Then checks the caller hasn\'t exceeded their rate limit.', codeLine: 3, patches: [{ nodeId: 'gw', badge: 'rate ok', highlight: true }] },
       { id: '4', caption: 'A GET /orders is routed to the Orders service.', travel: 'gw-orders', token: 'request', codeLine: 4, patches: [{ nodeId: 'orders', badge: 'handling', highlight: true }], state: { route: '/orders' } },
       { id: '5', caption: 'Different paths fan out to Users or Payments — the client never knows the internal map.', travel: 'gw-users', token: 'request', codeLine: 5, patches: [{ nodeId: 'users', badge: 'handling', highlight: true }] },
     ],
@@ -144,12 +156,16 @@ const apiGateway: Lesson = {
 const messageQueue: Lesson = {
   slug: 'message-queue',
   title: 'Message Queue',
-  summary: 'Decouple producers from consumers so spikes don’t topple the system.',
+  summary: 'Decouple producers from consumers so spikes don\'t topple the system.',
   group: 'building-blocks',
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
-  complexity: { time: 'O(1)', space: 'O(n)' },
+  tags: [
+    { label: 'Pattern', value: 'Async / Decouple' },
+    { label: 'Delivery', value: 'At-least-once' },
+    { label: 'Scalability', value: 'Horizontal workers' },
+  ],
   notes: [
     'Producers append messages; consumers process them at their own pace.',
     'A traffic spike fills the queue instead of overwhelming the worker.',
@@ -191,7 +207,11 @@ const rateLimiter: Lesson = {
   tier: 'free',
   minutes: 6,
   concept: 'Concept',
-  complexity: { time: 'O(1)', space: 'O(1)' },
+  tags: [
+    { label: 'Pattern', value: 'Token bucket' },
+    { label: 'Latency added', value: '< 1ms' },
+    { label: 'Protection', value: 'Burst + sustained' },
+  ],
   notes: [
     'A bucket holds up to N tokens; each request spends one.',
     'When the bucket is empty, extra requests are rejected with 429.',
@@ -236,7 +256,11 @@ const replication: Lesson = {
   tier: 'free',
   minutes: 7,
   concept: 'Concept',
-  complexity: { time: 'O(1)', space: 'O(n)' },
+  tags: [
+    { label: 'Availability', value: 'High' },
+    { label: 'Consistency', value: 'Eventual' },
+    { label: 'Read scale', value: 'Horizontal' },
+  ],
   notes: [
     'All writes go to a single leader to keep one source of truth.',
     'The leader streams changes to follower replicas.',

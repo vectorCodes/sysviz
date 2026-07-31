@@ -20,8 +20,8 @@ export type Lesson = {
   minutes: number
   /** Short tag shown by the title, e.g. "Concept" or "Case study". */
   concept?: string
-  /** Big-O tags shown in the top bar. */
-  complexity?: { time: string; space: string }
+  /** System design metadata chips shown in the top bar. */
+  tags?: { label: string; value: string }[]
   scene: Scene
   /** Prose "key ideas" shown in the workspace. */
   notes?: string[]

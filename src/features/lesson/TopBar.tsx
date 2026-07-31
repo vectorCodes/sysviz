@@ -24,15 +24,14 @@ export function TopBar({ lesson, step, total }: { lesson: Lesson; step: number; 
             {plan === 'pro' ? 'Pro' : 'Free'}
           </span>
         </div>
-        {lesson.complexity && (
-          <div className="card flex items-center gap-3 px-3 py-2">
-            <span className="font-display text-sm font-bold">{lesson.concept ?? 'Cost'}</span>
-            <span className="font-mono text-xs text-faint">
-              time <span className="text-text">{lesson.complexity.time}</span>
-            </span>
-            <span className="font-mono text-xs text-faint">
-              space <span className="text-text">{lesson.complexity.space}</span>
-            </span>
+        {lesson.tags && lesson.tags.length > 0 && (
+          <div className="card flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2">
+            {lesson.tags.map((t) => (
+              <span key={t.label} className="font-mono text-xs text-faint">
+                {t.label}{' '}
+                <span className="text-text">{t.value}</span>
+              </span>
+            ))}
           </div>
         )}
         <span className="font-mono text-xs text-faint">

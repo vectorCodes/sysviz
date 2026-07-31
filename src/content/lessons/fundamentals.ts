@@ -8,7 +8,11 @@ const clientServer: Lesson = {
   tier: 'free',
   minutes: 5,
   concept: 'Concept',
-  complexity: { time: 'O(1)', space: 'O(1)' },
+  tags: [
+    { label: 'Pattern', value: 'Request–Response' },
+    { label: 'Coupling', value: 'Synchronous' },
+    { label: 'Scalability', value: 'Vertical → Horizontal' },
+  ],
   notes: [
     'A client asks; a server answers. Nothing happens until a request is made.',
     'The server often needs a database to fulfil the request.',
@@ -36,7 +40,7 @@ const clientServer: Lesson = {
     ],
     steps: [
       { id: '1', caption: 'The browser sends an HTTP request for /profile/42.', travel: 'c-s', token: 'request', codeLine: 1, state: { step: 'request sent' } },
-      { id: '2', caption: 'The server can’t answer alone — it queries the database.', travel: 's-db', token: 'request', codeLine: 2, state: { step: 'querying db' } },
+      { id: '2', caption: 'The server can\'t answer alone — it queries the database.', travel: 's-db', token: 'request', codeLine: 2, state: { step: 'querying db' } },
       { id: '3', caption: 'The database finds the row and returns it.', travel: 'db-s', token: 'response', codeLine: 3, state: { step: 'row fetched' } },
       { id: '4', caption: 'The server renders a response from the data.', codeLine: 4, state: { step: 'rendering' } },
       { id: '5', caption: 'The response travels back and the browser paints it.', travel: 's-c', token: 'response', codeLine: 5, state: { step: 'done', 'round-trip': '~40 ms' } },
@@ -52,7 +56,11 @@ const latencyThroughput: Lesson = {
   tier: 'free',
   minutes: 5,
   concept: 'Concept',
-  complexity: { time: '—', space: '—' },
+  tags: [
+    { label: 'Latency', value: 'ms / μs' },
+    { label: 'Throughput', value: 'req/s' },
+    { label: 'Trade-off', value: 'Speed vs Volume' },
+  ],
   notes: [
     'Latency = time for a single request to complete (lower is better).',
     'Throughput = requests completed per second (higher is better).',
@@ -81,8 +89,8 @@ const latencyThroughput: Lesson = {
       { id: 'c-w3', from: 'client', to: 'w3', curve: 0.3 },
     ],
     steps: [
-      { id: '1', caption: 'One request takes ~50 ms to handle. That’s latency.', travel: 'c-w1', token: 'request', codeLine: 3, patches: [{ nodeId: 'w1', badge: 'busy', highlight: true }] },
-      { id: '2', caption: 'Latency is fixed per request — it doesn’t change if we do more at once.', codeLine: 4, state: { 'in flight': 1 } },
+      { id: '1', caption: 'One request takes ~50 ms to handle. That\'s latency.', travel: 'c-w1', token: 'request', codeLine: 3, patches: [{ nodeId: 'w1', badge: 'busy', highlight: true }] },
+      { id: '2', caption: 'Latency is fixed per request — it doesn\'t change if we do more at once.', codeLine: 4, state: { 'in flight': 1 } },
       { id: '3', caption: 'With 3 workers, three requests run in parallel…', travel: 'c-w2', token: 'request', codeLine: 7, patches: [{ nodeId: 'w2', badge: 'busy', highlight: true }], state: { 'in flight': 2 } },
       { id: '4', caption: '…so throughput triples even though each still takes 50 ms.', travel: 'c-w3', token: 'request', codeLine: 7, patches: [{ nodeId: 'w3', badge: 'busy', highlight: true }], state: { 'in flight': 3, throughput: '60 rps' } },
       { id: '5', caption: 'Latency = speed of one. Throughput = volume of many.', state: { throughput: '60 rps', latency: '50 ms' } },
@@ -98,9 +106,13 @@ const scaling: Lesson = {
   tier: 'free',
   minutes: 6,
   concept: 'Concept',
-  complexity: { time: '—', space: '—' },
+  tags: [
+    { label: 'Scalability', value: 'Horizontal' },
+    { label: 'Fault tolerance', value: 'High' },
+    { label: 'Trade-off', value: 'Cost vs Ceiling' },
+  ],
   notes: [
-    'Vertical: one machine, more CPU/RAM. Simple, but there’s a hard ceiling and a single point of failure.',
+    'Vertical: one machine, more CPU/RAM. Simple, but there\'s a hard ceiling and a single point of failure.',
     'Horizontal: many machines behind a load balancer. Near-limitless, fault-tolerant — but needs statelessness.',
     'Most large systems scale horizontally for exactly these reasons.',
   ],
@@ -129,8 +141,8 @@ const scaling: Lesson = {
       { id: 'lb-s3', from: 'lb', to: 's3', curve: 0.35 },
     ],
     steps: [
-      { id: '1', caption: 'Traffic pours into a single server — it’s maxed at 100%.', travel: 'c-lb', token: 'request', codeLine: 2, patches: [{ nodeId: 's1', badge: '100%', highlight: true }] },
-      { id: '2', caption: 'Vertical scaling adds CPU/RAM — but every machine has a ceiling, and it’s still one point of failure.', codeLine: 3 },
+      { id: '1', caption: 'Traffic pours into a single server — it\'s maxed at 100%.', travel: 'c-lb', token: 'request', codeLine: 2, patches: [{ nodeId: 's1', badge: '100%', highlight: true }] },
+      { id: '2', caption: 'Vertical scaling adds CPU/RAM — but every machine has a ceiling, and it\'s still one point of failure.', codeLine: 3 },
       { id: '3', caption: 'Instead, scale horizontally: bring a second server online.', travel: 'lb-s2', token: 'request', codeLine: 6, patches: [{ nodeId: 's2', badge: '50%', highlight: true }], state: { mode: 'horizontal', servers: 2, 'server load': '50%' } },
       { id: '4', caption: 'And a third. The load balancer spreads traffic across all of them.', travel: 'lb-s3', token: 'request', codeLine: 7, patches: [{ nodeId: 's1', badge: '33%' }, { nodeId: 's3', badge: '33%', highlight: true }], state: { servers: 3, 'server load': '33%' } },
       { id: '5', caption: 'Load per machine drops and any one can fail without downtime.', patches: [{ nodeId: 's1', badge: '33%' }, { nodeId: 's2', badge: '33%' }, { nodeId: 's3', badge: '33%' }] },

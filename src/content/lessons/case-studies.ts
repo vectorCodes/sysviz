@@ -8,7 +8,11 @@ const urlShortener: Lesson = {
   tier: 'pro',
   minutes: 12,
   concept: 'Case study',
-  complexity: { time: 'O(1)', space: 'O(n)' },
+  tags: [
+    { label: 'Read latency', value: 'Sub-ms (cache hit)' },
+    { label: 'Scale', value: 'Billions redirects/day' },
+    { label: 'Pattern', value: 'Read-heavy · Cache-aside' },
+  ],
   notes: [
     'Write: generate a short code, persist the mapping, then warm the cache.',
     'Read: resolve the code from cache (fast) or DB (fallback), then 301-redirect.',

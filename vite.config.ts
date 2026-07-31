@@ -10,4 +10,19 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Each group is cached independently — only re-downloaded when that group changes.
+          if (id.includes('gsap')) return 'gsap'
+          if (id.includes('@supabase')) return 'supabase'
+          if (id.includes('posthog')) return 'posthog'
+          if (id.includes('react-router') || id.includes('react-dom') || id.includes('/react/')) return 'react'
+          if (id.includes('zustand')) return 'zustand'
+          if (id.includes('node_modules')) return 'vendor'
+        },
+      },
+    },
+  },
 })
