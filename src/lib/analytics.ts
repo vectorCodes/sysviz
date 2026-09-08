@@ -25,6 +25,7 @@ export type AnalyticsEvent =
   | 'lesson_started'
   | 'lesson_completed'
   | 'step_played'
+  | 'deep_dive_opened'
   | 'paywall_viewed'
   | 'buy_access_clicked'
   | 'checkout_succeeded'
